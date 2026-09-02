@@ -1,7 +1,14 @@
 import { IsOptional, IsString, IsEnum, IsInt, Min, Max, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { SortDirection, ProfileSortField } from '../../../common/enums';
+
+function toArr(val: unknown): string[] | undefined {
+  if (!val) return undefined;
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') return val.split(',').map((s) => s.trim()).filter(Boolean);
+  return undefined;
+}
 
 export class QueryProfileDto {
   @ApiPropertyOptional()
@@ -11,30 +18,35 @@ export class QueryProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => toArr(value))
   @IsArray()
   @IsString({ each: true })
   skills?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => toArr(value))
   @IsArray()
   @IsString({ each: true })
   industry?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => toArr(value))
   @IsArray()
   @IsString({ each: true })
   job_title?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => toArr(value))
   @IsArray()
   @IsString({ each: true })
   location?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => toArr(value))
   @IsArray()
   @IsString({ each: true })
   company_size?: string[];
