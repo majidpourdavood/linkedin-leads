@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import elasticClient, { PROFILE_INDEX } from '../../shared/elastic/elastic-client';
 import { LinkedinProfile } from '../profile/profile.entity';
 import { QueryProfileDto } from '../profile/dto/query-profile.dto';
@@ -50,12 +50,23 @@ export class SearchService {
   }
 
   async indexAllProfiles(): Promise<number> {
-    const profiles = await this.profileRepo.find();
+    const batchSize = 100;
+    let offset = 0;
     let indexed = 0;
-    for (const profile of profiles) {
-      await this.indexProfile(profile);
-      indexed++;
+
+    while (true) {
+      const profiles = await this.profileRepo.find({
+        skip: offset,
+        take: batchSize,
+      });
+
+      if (profiles.length === 0) break;
+
+      await Promise.all(profiles.map((profile) => this.indexProfile(profile)));
+      indexed += profiles.length;
+      offset += batchSize;
     }
+
     return indexed;
   }
 
@@ -107,12 +118,13 @@ export class SearchService {
       });
 
       const total = typeof result.hits.total === 'object' ? result.hits.total.value : (result.hits.total as number);
-      const ids = result.hits.hits.map((hit) => hit._id).filter(Boolean) as string[];
 
-      let items: LinkedinProfile[] = [];
-      if (ids.length > 0) {
-        items = await this.profileRepo.findBy({ id: In(ids) });
-      }
+      const items = result.hits.hits
+        .filter((hit) => hit._source)
+        .map((hit) => ({
+          id: hit._id as string,
+          ...(hit._source as Record<string, unknown>),
+        }));
 
       return {
         data: items.map(ProfileMapper.toSearchResponse),
