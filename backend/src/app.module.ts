@@ -21,7 +21,7 @@ import { LinkedinProfileSeeder } from './database/seeds/linkedin-profile.seeder'
         database: config.get<string>('DB_DATABASE', 'linkedin_leads'),
         autoLoadEntities: true,
         synchronize: true,
-        logging: true,
+        logging: false,
       }),
     }),
     TypeOrmModule.forFeature([LinkedinProfile]),
